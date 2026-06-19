@@ -17,6 +17,10 @@ build/
 # Env & secrets
 .env
 .env.*
+!.env.template
+
+# App data (local session recordings)
+backend/data/
 
 # Editor / OS
 .DS_Store
