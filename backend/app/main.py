@@ -68,9 +68,7 @@ def get_session(call_id: str):
 
 @app.get("/sessions/{call_id}/files/{name}")
 def get_file(call_id: str, name: str):
-    if "/" in name or "\\" in name or ".." in name:
-        raise HTTPException(status_code=404, detail="not found")
-    path = config.SESSIONS_DIR / call_id / name
-    if not path.is_file():
+    path = download.file_path(call_id, name)
+    if not path:
         raise HTTPException(status_code=404, detail="not found")
     return FileResponse(path)

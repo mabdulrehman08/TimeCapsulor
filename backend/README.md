@@ -6,7 +6,7 @@ under `data/sessions/<call_id>/`.
 
 ## What it saves
 
-For every call, in `data/sessions/<call_id>/`:
+For every call, in `data/sessions/<startedAt>_<call_id>/` (timestamp-prefixed so they sort chronologically):
 
 | File | Source (Vapi `artifact.recording`) | Purpose |
 |------|------------------------------------|---------|

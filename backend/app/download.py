@@ -1,6 +1,7 @@
 """Download Vapi call recordings to a local folder per session.
 
-Minimal V1: everything lives on local disk under DATA_DIR/sessions/<call_id>/.
+Minimal V1: everything lives on local disk under
+DATA_DIR/sessions/<startedAt>_<call_id>/ (timestamp-prefixed so they sort).
 No database. Swap for real storage in V2.
 """
 from __future__ import annotations
@@ -20,10 +21,30 @@ log = logging.getLogger("timecapsulor")
 VAPI_API = "https://api.vapi.ai"
 
 
-def _session_dir(call_id: str) -> Path:
-    d = config.SESSIONS_DIR / call_id
+def _session_dir(name: str) -> Path:
+    d = config.SESSIONS_DIR / name
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+def _safe_ts(message: dict) -> str:
+    """Filesystem-safe, sortable timestamp from the call's start (or end) time.
+    '2026-06-19T22:07:16.004Z' -> '2026-06-19T22-07-16'."""
+    ts = message.get("startedAt") or message.get("endedAt") or ""
+    return ts[:19].replace(":", "-") or "unknown"
+
+
+def _find_session_path(call_id: str) -> Path | None:
+    """Resolve a session folder by call id. Folders are '<ts>_<call_id>', and
+    we also match a legacy bare '<call_id>' folder."""
+    if not call_id or "/" in call_id or "\\" in call_id or ".." in call_id:
+        return None
+    if not config.SESSIONS_DIR.exists():
+        return None
+    for d in config.SESSIONS_DIR.iterdir():
+        if d.is_dir() and (d.name == call_id or d.name.endswith("_" + call_id)):
+            return d
+    return None
 
 
 def _recording(artifact: dict) -> dict:
@@ -85,7 +106,7 @@ def process_end_of_call(message: dict) -> None:
     """Save transcript + download recordings for one finished call."""
     call = message.get("call") or {}
     call_id = call.get("id") or "unknown"
-    d = _session_dir(call_id)
+    d = _session_dir(f"{_safe_ts(message)}_{call_id}")
     log.info("processing call %s -> %s", call_id, d)
 
     # 1) transcript + role-tagged messages (AI-turn context)
@@ -155,21 +176,36 @@ def list_sessions() -> list[dict]:
     out: list[dict] = []
     if not config.SESSIONS_DIR.exists():
         return out
-    for d in sorted(config.SESSIONS_DIR.iterdir()):
+    for d in config.SESSIONS_DIR.iterdir():
         meta = d / "session.json"
         if meta.is_file():
             try:
                 out.append(json.loads(meta.read_text()))
             except Exception:  # noqa: BLE001
                 continue
+    out.sort(key=lambda s: s.get("startedAt") or "")
     return out
 
 
 def get_session(call_id: str) -> dict | None:
-    meta = config.SESSIONS_DIR / call_id / "session.json"
+    d = _find_session_path(call_id)
+    if not d:
+        return None
+    meta = d / "session.json"
     if meta.is_file():
         try:
             return json.loads(meta.read_text())
         except Exception:  # noqa: BLE001
             return None
     return None
+
+
+def file_path(call_id: str, name: str) -> Path | None:
+    """Path to a saved file within a session, or None if invalid/missing."""
+    if "/" in name or "\\" in name or ".." in name:
+        return None
+    d = _find_session_path(call_id)
+    if not d:
+        return None
+    p = d / name
+    return p if p.is_file() else None
