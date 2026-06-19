@@ -31,6 +31,10 @@ button {
   padding: 48px 0 72px;
 }
 
+.start-page-shell {
+  min-height: 100vh;
+}
+
 .stack {
   display: grid;
   gap: 16px;
@@ -40,6 +44,88 @@ button {
   display: grid;
   gap: 20px;
   padding: 32px 0;
+}
+
+.start-layout {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+  position: relative;
+  min-height: 100vh;
+  padding: 32px;
+  overflow: hidden;
+}
+
+.start-main {
+  display: grid;
+  gap: 24px;
+  position: relative;
+  z-index: 1;
+  align-content: start;
+}
+
+.start-sidebar {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  position: relative;
+  z-index: 1;
+}
+
+.start-background {
+  position: absolute;
+  inset: 0;
+}
+
+.start-background-image {
+  object-fit: cover;
+}
+
+.start-background-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 12, 16, 0.88) 0%,
+    rgba(10, 12, 16, 0.68) 45%,
+    rgba(10, 12, 16, 0.5) 100%
+  );
+}
+
+.start-copy {
+  width: min(560px, 100%);
+  padding-top: 12px;
+}
+
+.start-copy h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+}
+
+.start-copy p {
+  margin: 0;
+}
+
+.sidebar-link {
+  display: block;
+}
+
+.sidebar-link.button {
+  width: 100%;
+  text-align: center;
+}
+
+.start-sidebar.panel {
+  background: rgba(21, 25, 34, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.start-sidebar h2 {
+  margin: 0;
+}
+
+.hero-spacer {
+  min-height: 120px;
 }
 
 .muted {
@@ -81,5 +167,10 @@ button {
 @media (min-width: 720px) {
   .meta-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .start-layout {
+    grid-template-columns: minmax(0, 1.7fr) 260px;
+    padding: 48px;
   }
 }
