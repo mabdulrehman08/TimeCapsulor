@@ -18,7 +18,7 @@ export default function HomePage() {
 
         <div className="start-main">
           <div className="stack start-copy">
-            <p className="muted">Start Page</p>
+            <p className="eyebrow">Preserve A Living Memory</p>
             <h1>TimeCapsulor</h1>
             <p className="muted">
               Record a real conversation, preserve your voice and video, and turn
@@ -30,22 +30,42 @@ export default function HomePage() {
             </p>
           </div>
 
+          <div className="signal-row">
+            <div className="signal-pill">
+              <span className="signal-label">Live voice</span>
+              <strong>Vapi conversation</strong>
+            </div>
+            <div className="signal-pill">
+              <span className="signal-label">Memory artifact</span>
+              <strong>Video + transcript + replay</strong>
+            </div>
+            <div className="signal-pill">
+              <span className="signal-label">Future mode</span>
+              <strong>Talk to preserved self</strong>
+            </div>
+          </div>
+
           <div className="actions">
             <Link className="button primary" href="/session">
               Start Capsule
             </Link>
+            <span className="action-note">Launch a guided voice + video session</span>
           </div>
 
           <div className="hero-spacer" />
         </div>
 
         <aside className="start-sidebar panel">
-          <p className="muted">Later</p>
+          <p className="eyebrow">Revisit</p>
           <h2>Open Capsule</h2>
           <p className="muted">
             Revisit a saved session, replay the memory, and return to a preserved
             voice or future clone flow.
           </p>
+          <div className="sidebar-stat">
+            <span className="sidebar-stat-label">Family future</span>
+            <strong>Relatives can return to your preserved voice later.</strong>
+          </div>
           <Link className="button sidebar-link" href="/capsules">
             Open Capsule
           </Link>

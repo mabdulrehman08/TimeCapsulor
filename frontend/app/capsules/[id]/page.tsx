@@ -8,25 +8,57 @@ export default async function CapsuleDetailPage({
   const { id } = await params;
 
   return (
-    <main className="page-shell stack">
-      <div className="stack">
-        <p className="muted">Capsule Detail</p>
+    <main className="page-shell stack detail-shell">
+      <div className="stack detail-hero">
+        <p className="eyebrow">Capsule Detail</p>
         <h1>{id}</h1>
         <p className="muted">
-          This page is where saved video playback, transcript, and session
-          metadata will render in V1.
+          This preserved session becomes the replay surface for a person-shaped
+          memory artifact.
         </p>
       </div>
 
-      <section className="panel stack">
-        <h2>Expected Data</h2>
-        <ul>
-          <li>videoUrl</li>
-          <li>createdAt</li>
-          <li>durationSec</li>
-          <li>transcript</li>
-          <li>vapiSessionId</li>
-        </ul>
+      <section className="detail-grid">
+        <div className="panel detail-player">
+          <div className="detail-video-shell">
+            <div className="detail-video-placeholder">Replay Surface</div>
+          </div>
+          <div className="detail-player-meta">
+            <div>
+              <span className="detail-label">Created</span>
+              <strong>June 19, 2026</strong>
+            </div>
+            <div>
+              <span className="detail-label">Duration</span>
+              <strong>07:00</strong>
+            </div>
+            <div>
+              <span className="detail-label">Mode</span>
+              <strong>Voice + video capsule</strong>
+            </div>
+          </div>
+        </div>
+
+        <aside className="stack">
+          <section className="panel detail-side-card">
+            <p className="eyebrow">Key Memory</p>
+            <h2>What this capsule holds</h2>
+            <ul className="detail-list">
+              <li>Recorded Vapi conversation</li>
+              <li>Preserved webcam session</li>
+              <li>Transcript and recall moments</li>
+              <li>Future clone / relative conversation path</li>
+            </ul>
+          </section>
+
+          <section className="panel detail-side-card detail-quote-card">
+            <p className="eyebrow">Future Experience</p>
+            <p className="detail-quote">
+              Later this page becomes the place where a user or family member can
+              return to a preserved voice and continue the memory.
+            </p>
+          </section>
+        </aside>
       </section>
     </main>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createVapiClient, getVapiConfig } from "@/lib/vapi";
 import { uploadCapsuleSession } from "@/lib/api";
@@ -22,6 +23,7 @@ export function SessionStudio() {
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef<number | null>(null);
   const transcriptRef = useRef<string>("");
+  const sessionOpenRef = useRef(false);
   const vapiRef = useRef<ReturnType<typeof createVapiClient> | null>(null);
 
   const [state, setState] = useState<SessionState>("idle");
@@ -90,6 +92,15 @@ export function SessionStudio() {
     }
   }
 
+  function closeCameraPreview() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }
+
   async function startSession() {
     if (!streamRef.current) {
       await prepareMedia();
@@ -103,6 +114,7 @@ export function SessionStudio() {
     setState("starting-call");
     chunksRef.current = [];
     transcriptRef.current = "";
+    sessionOpenRef.current = true;
     setTranscript("");
     setDurationSec(0);
 
@@ -125,7 +137,11 @@ export function SessionStudio() {
       vapiRef.current = vapi;
 
       vapi.on("message", (message: { type?: string; transcript?: string }) => {
-        if (message.type === "transcript" && message.transcript) {
+        if (
+          sessionOpenRef.current &&
+          message.type === "transcript" &&
+          message.transcript
+        ) {
           transcriptRef.current = transcriptRef.current
             ? `${transcriptRef.current}\n${message.transcript}`
             : message.transcript;
@@ -147,6 +163,7 @@ export function SessionStudio() {
     }
 
     setState("stopping");
+    sessionOpenRef.current = false;
 
     const stopPromise = new Promise<Blob>((resolve) => {
       const recorder = recorderRef.current!;
@@ -158,6 +175,8 @@ export function SessionStudio() {
 
     recorderRef.current.stop();
     vapiRef.current?.stop?.();
+    vapiRef.current = null;
+    closeCameraPreview();
 
     let blob: Blob | null = null;
 
@@ -173,6 +192,7 @@ export function SessionStudio() {
 
       setDurationSec(finalDurationSec);
       setState("uploading");
+      recorderRef.current = null;
 
       const saved = await uploadCapsuleSession({
         blob,
@@ -189,7 +209,7 @@ export function SessionStudio() {
         const localUrl = URL.createObjectURL(blob);
         setDownloadUrl(localUrl);
         setSavedMessage(
-          "Upload is not connected yet. Download the recording locally for now."
+          "Capsule closed. Upload is not connected yet, so download the recording locally for now."
         );
         setError("");
         setState("saved");
@@ -207,101 +227,96 @@ export function SessionStudio() {
     state === "stopping" ||
     state === "uploading";
 
+  const primaryLabel =
+    state === "live"
+      ? "Close Capsule"
+      : state === "saved"
+        ? "Start New Capsule"
+        : "Start Capsule";
+
+  async function handlePrimaryAction() {
+    if (state === "live") {
+      await stopSession();
+      return;
+    }
+
+    await startSession();
+  }
+
+  const transcriptPreview = transcript
+    ? transcript.split("\n").slice(-2).join(" ")
+    : "Live transcript moments will appear here.";
+
   return (
-    <div className="stack">
-      <section className="panel stack">
-        <div className="meta-grid">
-          <div className="stack">
-            <h2>Live Browser Session</h2>
-            <p className="muted">
-              This is the user-facing session screen. Camera and microphone stay
-              in the browser, Vapi handles the live voice call, and FastAPI can
-              receive the final recording afterward.
-            </p>
-            <div className="actions">
-              <button className="button" disabled={isBusy} onClick={prepareMedia}>
-                Prepare Camera + Mic
-              </button>
-              <button
-                className="button primary"
-                disabled={isBusy || !config.assistantId}
-                onClick={startSession}
-              >
-                Start Vapi Session
-              </button>
-              <button
-                className="button"
-                disabled={state !== "live"}
-                onClick={stopSession}
-              >
-                Stop + Save
-              </button>
-            </div>
-          </div>
-
-          <div className="stack">
-            <div>
-              <strong>Status</strong>
-              <p className="muted">{state}</p>
-            </div>
-            <div>
-              <strong>Duration</strong>
-              <p className="muted">{durationSec}s</p>
-            </div>
-            <div>
-              <strong>Vapi key</strong>
-              <p className="muted">{config.publicKey ? "Configured" : "Missing"}</p>
-            </div>
-            <div>
-              <strong>Assistant</strong>
-              <p className="muted">{config.assistantId ? "Configured" : "Missing"}</p>
-            </div>
-          </div>
+    <div className="stack session-shell">
+      <section className="panel session-panel session-top-panel stack">
+        <div className="session-top-copy">
+          <p className="eyebrow">Live Capsule</p>
+          <h2>Record The Moment</h2>
+          <p className="muted">
+            Talk naturally. Vapi handles the voice conversation while the browser
+            preserves the video capsule.
+          </p>
         </div>
-      </section>
-
-      <section className="panel stack">
-        <h2>Camera Preview</h2>
         <video
+          className="session-video"
           ref={videoRef}
           autoPlay
           muted
           playsInline
-          style={{
-            width: "100%",
-            maxWidth: "720px",
-            borderRadius: 8,
-            background: "#090b0f",
-            aspectRatio: "16 / 9"
-          }}
         />
-      </section>
+        <div className="session-wave-field" aria-hidden="true">
+          {Array.from({ length: 54 }).map((_, index) => (
+            <span
+              key={index}
+              className="session-wave-dot"
+              style={
+                {
+                  "--dot-delay": `${(index % 9) * 0.12}s`,
+                  "--dot-row": `${Math.floor(index / 9)}`,
+                  "--dot-col": `${index % 9}`
+                } as CSSProperties
+              }
+            />
+          ))}
+        </div>
 
-      <section className="panel stack">
-        <h2>Transcript Feed</h2>
-        <p className="muted">
-          Vapi transcript events will appear here during the live session.
-        </p>
-        <pre
-          style={{
-            margin: 0,
-            whiteSpace: "pre-wrap",
-            fontFamily: "inherit",
-            color: "#d7deeb",
-            maxHeight: "280px",
-            overflowY: "auto",
-            padding: "16px",
-            borderRadius: 8,
-            background: "#0f131a",
-            border: "1px solid #252c37"
-          }}
-        >
-          {transcript || "No transcript yet."}
-        </pre>
+        <div className="session-control-row">
+          <button
+            className="button primary session-primary-button"
+            disabled={isBusy || !config.assistantId}
+            onClick={handlePrimaryAction}
+          >
+            {primaryLabel}
+          </button>
+          <div className="session-inline-status">
+            <span className="status-chip">{state}</span>
+            <span className="session-inline-time">{durationSec}s</span>
+          </div>
+        </div>
+
+        <div className="session-meta-strip">
+          <span className="session-meta-item">
+            Vapi: {config.publicKey ? "Configured" : "Missing"}
+          </span>
+          <span className="session-meta-item">
+            Assistant: {config.assistantId ? "Configured" : "Missing"}
+          </span>
+          <span className="session-meta-item">Video: Browser capture</span>
+        </div>
+
+        <div className="transcript-preview-card">
+          <span className="transcript-preview-label">Transcript Preview</span>
+          <p className="transcript-preview-text">{transcriptPreview}</p>
+        </div>
+
+        {state === "saved" ? (
+          <p className="session-note">Capsule closed. Camera preview stopped.</p>
+        ) : null}
       </section>
 
       {(error || savedMessage) && (
-        <section className="panel stack">
+        <section className="panel session-panel session-feedback stack">
           {error ? <p>{error}</p> : null}
           {savedMessage ? <p>{savedMessage}</p> : null}
           {downloadUrl ? (
