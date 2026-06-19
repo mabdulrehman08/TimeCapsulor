@@ -44,6 +44,12 @@ def _ext(url: str, default: str) -> str:
     return Path(urlparse(url).path).suffix or default
 
 
+def _usable(url) -> bool:
+    """Fetchable URL: present and not an 'undefined' placeholder. Vapi emits
+    '.../undefined' for an artifact (usually video) that wasn't captured."""
+    return bool(url) and "undefined" not in url
+
+
 def _download(url: str, dest: Path) -> bool:
     try:
         with httpx.stream("GET", url, timeout=120, follow_redirects=True) as r:
@@ -95,39 +101,37 @@ def process_end_of_call(message: dict) -> None:
         )
     )
 
-    # 2) download recordings, retrying because video can lag behind call-end
+    # 2) download recordings. Retry only for usable URLs that fail transiently,
+    #    and stop as soon as every usable URL is saved — so a call without video
+    #    (or a failed call) doesn't sit in a pointless retry loop.
     artifact = message.get("artifact") or {}
     defaults = {"user_audio": ".wav", "assistant_audio": ".wav", "video": ".mp4"}
     saved: dict[str, str] = {}
 
-    for attempt in range(1, 7):
+    for attempt in range(1, 5):
         urls = _urls(_recording(artifact))
         for name, default_ext in defaults.items():
-            if name in saved:
+            if name in saved or not _usable(urls.get(name)):
                 continue
-            url = urls.get(name)
-            if not url:
-                continue
-            filename = f"{name}{_ext(url, default_ext)}"
-            if _download(url, d / filename):
+            filename = f"{name}{_ext(urls[name], default_ext)}"
+            if _download(urls[name], d / filename):
                 saved[name] = filename
                 log.info("call %s: saved %s", call_id, filename)
 
-        # user_audio is the must-have (voice cloning); video is best-effort
-        if "user_audio" in saved and "video" in saved:
+        urls = _urls(_recording(artifact))
+        pending = [n for n in defaults if n not in saved and _usable(urls.get(n))]
+        if not pending:
             break
 
-        time.sleep(min(3 * attempt, 15))
+        time.sleep(min(3 * attempt, 10))
         fresh = _fetch_call(call_id)
         if fresh:
             artifact = fresh.get("artifact") or artifact
 
     if "user_audio" not in saved:
-        log.warning("call %s: no user audio saved (is Audio Recording on?)", call_id)
+        log.warning("call %s: no user audio (call may have captured no customer audio)", call_id)
     if "video" not in saved:
-        log.warning(
-            "call %s: no video saved (enable Video Recording + AWS S3 in Vapi)", call_id
-        )
+        log.info("call %s: no video for this call", call_id)
 
     # 3) tiny per-session index
     (d / "session.json").write_text(
