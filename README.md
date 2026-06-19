@@ -1,17 +1,49 @@
 # TimeCapsulor
 
-Minimal V1 frontend bootstrap for a hackathon build.
+TimeCapsulor is a hackathon MVP for recording a live conversation with Vapi while capturing webcam video in the browser, then saving that session as a replayable time capsule.
 
-## Current scope
+## Repo structure
 
-- Next.js + TypeScript app shell
-- Vapi env/config wiring
-- basic routes for `/`, `/session`, `/capsules`, and `/capsules/[id]`
-- local docs in `docs/timecapsulor/`
+```txt
+TimeCapsulor/
+  frontend/   # Next.js browser app
+  backend/    # API, storage, processing
+  docs/       # product and build docs
+  DEMO.md     # pitch and demo script
+```
 
-## Needed next
+## Ownership split
 
-1. install full Next.js runtime dependencies
-2. wire the Vapi session page
-3. add MediaRecorder
-4. add local upload and session metadata APIs
+### Frontend
+
+Lives in `frontend/` and owns:
+
+- Next.js + TypeScript app
+- Vapi browser integration
+- webcam and mic capture
+- upload flow to backend
+- capsule browsing and playback UI
+
+### Backend
+
+Lives in `backend/` and owns:
+
+- upload endpoints
+- local storage and database
+- transcript and session processing
+- later summary, memory, and voice features
+
+## Current status
+
+- repo is now clearly split into frontend and backend
+- frontend has the minimum bootstrap files
+- backend has a starter stub so work can begin independently
+- docs remain in `docs/timecapsulor/`
+
+## Docs
+
+- [Demo Script](C:/Users/muham/timecapu/TimeCapsulor/DEMO.md)
+- [Bootstrap V1](C:/Users/muham/timecapu/TimeCapsulor/docs/timecapsulor/bootstrap-v1.md)
+- [Design](C:/Users/muham/timecapu/TimeCapsulor/docs/timecapsulor/design.md)
+- [Requirements](C:/Users/muham/timecapu/TimeCapsulor/docs/timecapsulor/requirements.md)
+- [Tasks](C:/Users/muham/timecapu/TimeCapsulor/docs/timecapsulor/tasks.md)
